@@ -1,5 +1,5 @@
 'use strict'
 module.exports = {
   NODE_ENV: '"production"',
-  BASE_URL: '"http://10.166.152.49:8000/board/"',
+  BASE_URL: '"http://x-brain.cdlab.cn.ao.ericsson.se/board/"',
 }
