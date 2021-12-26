@@ -16,7 +16,12 @@
             v-row
               v-combobox(v-model="combobox_layer" :items="combobox_layer_list" outlined dense @change="changeLayer")
             v-row
-              v-btn(@click="displayHeatMap") HEATMAP
+              //- v-btn(@click="displayHeatMap") HEATMAP
+              template(v-if="run_flag === false")
+                v-btn(@click="start") START
+              template(v-else)
+                v-btn(@click="start") STOP
+
           template(v-else-if="combobox_topology === 'logic'")
             v-row
               v-text-field(v-model="filter_nodes" label="Filter by node name" placeholder="Filter by node name" outlined dense)
@@ -50,6 +55,7 @@ export default {
       combobox_layer: 'TOP',
       combobox_layer_list: ['TOP', 'BOTTOM'],
       heatmap_flag: false,
+      run_flag: false,
       physical_board: {
         x: -20,
         y: -10,
@@ -62,6 +68,8 @@ export default {
         width_compensate: 110,
         height_compensate: 130,
       },
+
+      nodes_temperature_data: [],
 
       data: [],
       nodes: [],
@@ -94,6 +102,7 @@ export default {
       transform: 'translate(0,0) scale(1)',
       interval: '',
       interval2: '',
+      interval3: '',
       refresh_interval: 1000,
       history_data_pool: [],
     }
@@ -109,12 +118,13 @@ export default {
       if (this.combobox_topology == 'physics') {
         this.getPhysicalChartData()
       }else{
-        // this.getLogicChartData()
+        this.clearDataDisplay()
         this.logicFilterApply()
       }
     },
     changeLayer () {
       this.getPhysicalChartData()
+      this.clearDataDisplay()
       this.heatmap_flag = false
     },
     async getPhysicalChartData () {
@@ -529,7 +539,60 @@ export default {
         .attr("x1", this.canvas_width)
         .attr("x2", -transform.x))
     },
-
+    /*****************************run******************************/
+    start(){
+      let that = this
+      if (this.run_flag == false){
+        this.interval3 = setInterval(function() {        
+          that.$http.get(that.$urls.data_visualization_get, {
+            params: {
+              operate: 'get_board_temperature',
+              layer_ref: that.combobox_layer,
+            },
+            })
+            .then(response => {
+              that.nodes_temperature_data = response.data.content
+              that.createOrSyncDataDisplay()
+            })
+        },this.refresh_interval + 2000)
+        this.run_flag = true
+      }else{
+        this.clearDataDisplay()
+        clearInterval(this.interval3)
+        this.run_flag = false
+      }
+    },
+    createOrSyncDataDisplay(){
+      if ((this.svg.select("#nodes_temperature_data").empty()) && (this.combobox_topology == 'physics')){
+        this.svg.append("g")
+            .attr("id", "nodes_temperature_node")
+          .selectAll("circle")
+          .data(this.nodes_temperature_data)
+          .join("circle")
+            .attr("cx", d => d.Location.x)
+            .attr("cy", d => d.Location.y)
+            .attr("r", 2)
+            .attr("fill", "#FF69B4")
+        this.svg.append("g")
+            .attr("id", "nodes_temperature_data")
+          .selectAll("text")
+          .data(this.nodes_temperature_data)
+          .join("text")
+            .attr("id", d => d.Comonent_RefDes + '_data')
+            .attr("x", d => d.Location.x + 2)
+            .attr("y", d => d.Location.y - 3)
+            .text(d => d.temperature)
+            .style('fill', "#FF69B4")
+          .clone(true).lower()
+            .attr("fill", "none")
+            .attr("stroke", "white")
+            .attr("stroke-width", 0.2)
+      }else{
+        this.nodes_temperature_data.forEach((item) => {
+          d3.select('#'+item.Comonent_RefDes+'_data').text(item.temperature)
+        })
+      }
+    },
     /*****************************heatmap******************************/
     displayHeatMap(){
       if (this.heatmap_flag == false){
@@ -976,7 +1039,10 @@ export default {
       };
       return module
     },
-
+    clearDataDisplay(){
+      this.svg.select("#nodes_temperature_node").remove()
+      this.svg.select("#nodes_temperature_data").remove()
+    },
     clear(){
       if (this.zoom != ''){
         d3.select("#new").remove()
@@ -984,7 +1050,7 @@ export default {
       }
     },
     logs () {
-      console.log(d3.select("#axis").node())
+      console.log(d3.select("#new").node())
     }
 
   }
