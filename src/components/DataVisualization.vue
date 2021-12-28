@@ -583,10 +583,10 @@ export default {
             .attr("y", d => d.Location.y - 3)
             .text(d => d.temperature)
             .style('fill', "#FF69B4")
-          .clone(true).lower()
-            .attr("fill", "none")
-            .attr("stroke", "white")
-            .attr("stroke-width", 0.2)
+          // .clone(true).lower()
+          //   .attr("fill", "none")
+          //   .attr("stroke", "white")
+          //   .attr("stroke-width", 0.2)
       }else{
         this.nodes_temperature_data.forEach((item) => {
           d3.select('#'+item.Comonent_RefDes+'_data').text(item.temperature)
